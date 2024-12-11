@@ -6,7 +6,7 @@ public class CloneOpportunity implements Finalizer, Queueable {
     }
 
     public void execute(QueueableContext context) {
-        List<Opportunity> opportunityList = new List<Opportunity>();
+        List<Opportunity> clonedOpportunityList = new List<Opportunity>();
 
         for(Id curRecordId : opportunityMap.keySet()){
             Opportunity curOpportunity = opportunityMap.get(curRecordId);
@@ -18,11 +18,14 @@ public class CloneOpportunity implements Finalizer, Queueable {
             //Param 4 - preserveAutonumber - No
             Opportunity clonedOpportunity = curOpportunity.clone(false, true, false, false);
 
-            opportunityList.add(clonedOpportunity);
+            clonedOpportunityList.add(clonedOpportunity);
         }
 
-        if(opportunityList.size() > 0){
-            insert opportunityList;
+        if(clonedOpportunityList.size() > 0){
+            insert clonedOpportunityList;
+
+            // Call (Chained Queueable)
+            ID jobID = System.enqueueJob(new CloneQuote(new Map<Id, Opportunity>(clonedOpportunityList)));
         }
     }
 
