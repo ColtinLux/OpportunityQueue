@@ -43,5 +43,12 @@ public class CloneQuote implements Finalizer, Queueable {
         if (context.getResult() == ParentJobResult.SUCCESS) {
             System.debug('Quote queueable job [' + parentJobId + '] completed successfully.');
         }
+
+        //After all child quote line jobs finish, then recalculate the parent quote
+        for(Id quoteId : sourceIdByClonedId.keySet()){
+            SBQQ.QuoteAPI.QuoteCalculator quoteCalculator = new SBQQ.QuoteAPI.QuoteCalculator();
+            quoteCalculator.loadQuote(quoteId);
+            quoteCalculator.calculate();
+        }
     }
 }
