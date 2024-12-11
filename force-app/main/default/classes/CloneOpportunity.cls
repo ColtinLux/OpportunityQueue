@@ -26,6 +26,7 @@ public class CloneOpportunity implements Finalizer, Queueable {
 
             // Call (Chained Queueable)
             ID jobID = System.enqueueJob(new CloneQuote(new Map<Id, Opportunity>(clonedList)));
+            System.debug('Quote queueable job [' + jobID + '] enqueued successfully.');
         }
     }
 

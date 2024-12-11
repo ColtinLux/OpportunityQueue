@@ -33,6 +33,7 @@ public class CloneQuote implements Finalizer, Queueable {
 
             // Call (Chained Queueable)
             ID jobID = System.enqueueJob(new CloneQuoteLines(new Map<Id, SBQQ__Quote__c>(clonedList)));
+            System.debug('Quote Lines queueable job [' + jobID + '] enqueued successfully.');
         }
     }
 
