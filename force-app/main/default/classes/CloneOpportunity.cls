@@ -1,31 +1,31 @@
 public class CloneOpportunity implements Finalizer, Queueable {
-    private Map<Id, Opportunity> opportunityMap;
+    private Map<Id, Opportunity> existingMap;
 
     public CloneOpportunity(Map<Id, Opportunity> deliveryOpps) {
-        this.opportunityMap = deliveryOpps;
+        this.existingMap = deliveryOpps;
     }
 
     public void execute(QueueableContext context) {
-        List<Opportunity> clonedOpportunityList = new List<Opportunity>();
+        List<Opportunity> clonedList = new List<Opportunity>();
 
-        for(Id curRecordId : opportunityMap.keySet()){
-            Opportunity curOpportunity = opportunityMap.get(curRecordId);
+        for(Id curRecordId : existingMap.keySet()){
+            Opportunity curRecord = existingMap.get(curRecordId);
             
             //Assumptions
             //Param 1 - PreserveId - No
             //Param 2 - isDeepClone - Yes
             //Param 3 - preserveReadonlyTimestamps - No
             //Param 4 - preserveAutonumber - No
-            Opportunity clonedOpportunity = curOpportunity.clone(false, true, false, false);
+            Opportunity clonedRecord = curRecord.clone(false, true, false, false);
 
-            clonedOpportunityList.add(clonedOpportunity);
+            clonedList.add(clonedRecord);
         }
 
-        if(clonedOpportunityList.size() > 0){
-            insert clonedOpportunityList;
+        if(clonedList.size() > 0){
+            insert clonedList;
 
             // Call (Chained Queueable)
-            ID jobID = System.enqueueJob(new CloneQuote(new Map<Id, Opportunity>(clonedOpportunityList)));
+            ID jobID = System.enqueueJob(new CloneQuote(new Map<Id, Opportunity>(clonedList)));
         }
     }
 
