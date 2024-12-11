@@ -1,3 +1,7 @@
+/**
+* @Name: CloneOpportunity
+* @Description: Clone Opportunities and Execute QuoteClone
+*/
 public class CloneOpportunity implements Finalizer, Queueable {
     private Map<Id, Opportunity> existingMap;
 
@@ -5,12 +9,13 @@ public class CloneOpportunity implements Finalizer, Queueable {
         this.existingMap = deliveryOpps;
     }
 
+    //-------------------------------------------------
+    // Queueable Execution
+    //-------------------------------------------------
     public void execute(QueueableContext context) {
         List<Opportunity> clonedList = new List<Opportunity>();
 
-        for(Id curRecordId : existingMap.keySet()){
-            Opportunity curRecord = existingMap.get(curRecordId);
-            
+        for(Opportunity curRecord : existingMap.values()){
             //Assumptions
             //Param 1 - PreserveId - No
             //Param 2 - isDeepClone - Yes
@@ -30,6 +35,9 @@ public class CloneOpportunity implements Finalizer, Queueable {
         }
     }
 
+    //-------------------------------------------------
+    // Queueable Execution Complete
+    //-------------------------------------------------
     public void execute(FinalizerContext context) {
         String parentJobId = context.getAsyncApexJobId();
 

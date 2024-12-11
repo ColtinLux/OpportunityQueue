@@ -1,3 +1,7 @@
+/**
+* @Name: CloneQuoteLines
+* @Description: Clone Quote Lines and associate to Cloned Quote
+*/
 public class CloneQuoteLines implements Finalizer, Queueable {
     private Map<Id, Id> sourceIdByClonedId;
 
@@ -11,10 +15,16 @@ public class CloneQuoteLines implements Finalizer, Queueable {
         this.sourceIdByClonedId = result;
     }
 
+    //-------------------------------------------------
+    // Queueable Execution
+    //-------------------------------------------------
     public void execute(QueueableContext context) {
         List<SBQQ__Quote__c> clonedList = new List<SBQQ__Quote__c>();
 
-        Map<Id, List<SBQQ__Quote__c>> existingQuoteLinesMap = new Map<Id, List<SBQQ__Quote__c>>([SELECT Id, (SELECT Id FROM SBQQ__QuoteLine__r) FROM SBQQ__Quote__c WHERE Id IN : sourceIdByClonedId.values()]);
+        Map<Id, List<SBQQ__Quote__c>> existingQuoteLinesMap = new Map<Id, List<SBQQ__Quote__c>>(
+            [SELECT Id, (SELECT Id FROM SBQQ__QuoteLine__r) 
+            FROM SBQQ__Quote__c WHERE Id IN : sourceIdByClonedId.values()
+        ]);
 
         for(Id cloneRecordId : sourceIdByClonedId.keySet()){
             Id sourceId = sourceIdByClonedId.get(cloneRecordId);
@@ -31,6 +41,9 @@ public class CloneQuoteLines implements Finalizer, Queueable {
         }
     }
 
+    //-------------------------------------------------
+    // Queueable Execution Complete
+    //-------------------------------------------------
     public void execute(FinalizerContext context) {
         String parentJobId = context.getAsyncApexJobId();
 

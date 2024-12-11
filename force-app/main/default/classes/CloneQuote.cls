@@ -1,5 +1,9 @@
+/**
+* @Name: CloneQuote
+* @Description: Clone Quote, associate to Cloned Opportunity, Execute CloneQuoteLines
+*/
 public class CloneQuote implements Finalizer, Queueable {
-    private Map<Id, Id> sourceIdByClonedId;
+    private Map<Id, Id> sourceIdByClonedId;  //clonedRecordId > sourceRecordId
 
     public CloneQuote(Map<Id, Opportunity> clonedRecords) {
         Map<Id, Id> result = new Map<Id, Id>();
@@ -11,10 +15,16 @@ public class CloneQuote implements Finalizer, Queueable {
         this.sourceIdByClonedId = result;
     }
 
+    //-------------------------------------------------
+    // Queueable Execution
+    //-------------------------------------------------
     public void execute(QueueableContext context) {
         List<SBQQ__Quote__c> clonedList = new List<SBQQ__Quote__c>();
 
-        Map<Id, List<SBQQ__Quote__c>> existingMap = new Map<Id, List<SBQQ__Quote__c>>([SELECT Id, (SELECT Id, SBQQ__Opportunity2__c FROM SBQQ__Quote__r) FROM Opportunity WHERE Id IN : sourceIdByClonedId.values()]);
+        Map<Id, List<SBQQ__Quote__c>> existingMap = new Map<Id, List<SBQQ__Quote__c>>(
+            [SELECT Id, (SELECT Id, SBQQ__Opportunity2__c FROM SBQQ__Quote__r) 
+            FROM Opportunity WHERE Id IN : sourceIdByClonedId.values()]
+        );
 
         for(Id cloneId : sourceIdByClonedId.keySet()){
             Id sourceId = sourceIdByClonedId.get(cloneId);
@@ -37,6 +47,9 @@ public class CloneQuote implements Finalizer, Queueable {
         }
     }
 
+    //-------------------------------------------------
+    // Queueable Execution Complete
+    //-------------------------------------------------
     public void execute(FinalizerContext context) {
         String parentJobId = context.getAsyncApexJobId();
 
