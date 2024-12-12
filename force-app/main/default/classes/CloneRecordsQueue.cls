@@ -7,6 +7,9 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
     private Map<Id, Id> recordIdToSourceIdMap;
     private Boolean relatedRecordEval;
 
+    //-----------------------------------------------------------
+    // Constructor
+    //-----------------------------------------------------------
     public CloneRecordsQueue(Map<Id, SObject> recordsToProcess, Boolean relatedRecordEvaluation) {
 
         Map<Id, Id> tempMap = new Map<Id, Id>();
@@ -38,10 +41,15 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
             Id sourceId = recordIdToSourceIdMap.get(recordId);
 
             if(!relatedRecordEval && recordsToProcessMap.containsKey(recordId)){
+                //-----------------------------------------------------------
+                // Cloning Record
+                //-----------------------------------------------------------
                 SObject recordToClone = recordsToProcessMap.get(recordId);
                 clonedList.add(getClone(recordToClone));
             } else if(relatedRecordEval && combinedChildMap.containsKey(sourceId)){
-
+                //-----------------------------------------------------------
+                // Cloning Child Records
+                //-----------------------------------------------------------
                 for(SObject childRecord : combinedChildMap.get(sourceId)){
                     SObject clonedChildRecord = getClone(childRecord);
                     String relationshipFieldToReparent = getParentField(childRecord);
@@ -55,6 +63,9 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
             }
         }
 
+        //-----------------------------------------------------------
+        // Clone DML & Recursion
+        //-----------------------------------------------------------
         if(clonedList.size() > 0){
             insert clonedList;
 
@@ -74,23 +85,45 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
         }
     }
 
-    public Map<Id, List<SObject>> queryChildRecords(Map<Id, Id> recIdMap) {
-        Map<Id, List<SObject>> childRecordMap = new Map<Id, List<SObject>>();
+    //-------------------------------------------------
+    // Queueable Finalizer
+    //-------------------------------------------------
+    public void execute(FinalizerContext context) {
+        String parentJobId = context.getAsyncApexJobId();
 
-        Map<Id, List<SBQQ__Quote__c>> existingQuotesMap = new Map<Id, List<SBQQ__Quote__c>>(
-            [SELECT Id, (SELECT Id, SBQQ__Opportunity2__c FROM SBQQ__Quote__r) 
+        if (context.getResult() == ParentJobResult.SUCCESS) {
+            System.debug('SObject Clone queueable job [' + parentJobId + '] completed successfully.');
+        }
+
+        if(recordIdToSourceIdMap != null && recordIdToSourceIdMap.values().size() > 0 && recordIdToSourceIdMap.values()[0].getSObjectType().getDescribe().getName().contains('SBQQ__Quote__c')){
+            for(Id quoteId : recordIdToSourceIdMap.keySet()){
+                SBQQ.QuoteAPI.QuoteCalculator quoteCalculator = new SBQQ.QuoteAPI.QuoteCalculator();
+                quoteCalculator.loadQuote(quoteId);
+                quoteCalculator.calculate();
+            }
+        }
+    }
+
+    //-----------------------------------------------------------
+    // Helper Methods
+    //-----------------------------------------------------------
+    public Map<Id, List<SObject>> queryChildRecords(Map<Id, Id> recIdMap) {
+        Map<Id, List<SObject>> combinedChildMap = new Map<Id, List<SObject>>();
+
+        Map<Id, List<SObject>> existingQuotesMap = new Map<Id, List<SObject>>([
+            SELECT Id, (SELECT Id, SBQQ__Opportunity2__c FROM SBQQ__Quote__r) 
             FROM Opportunity WHERE Id IN : recIdMap.values()]
         );
 
-        Map<Id, List<SBQQ__QuoteLine__c>> existingQuoteLinesMap = new Map<Id, List<SBQQ__QuoteLine__c>>(
-            [SELECT Id, (SELECT Id FROM SBQQ__QuoteLine__r) 
+        Map<Id, List<SObject>> existingQuoteLinesMap = new Map<Id, List<SObject>>([
+            SELECT Id, (SELECT Id FROM SBQQ__QuoteLine__r) 
             FROM SBQQ__Quote__c WHERE Id IN : recIdMap.values()
         ]);
 
         combinedChildMap.putAll(existingQuotesMap);
         combinedChildMap.putAll(existingQuoteLinesMap);
 
-        return childRecordMap;
+        return combinedChildMap;
     }
 
     public SObject getClone(SObject curRecord){
@@ -115,25 +148,6 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
             return 'SBQQ__Quote__c';
         } else {
             return null;
-        }
-    }
-
-    //-------------------------------------------------
-    // Queueable Execution Complete
-    //-------------------------------------------------
-    public void execute(FinalizerContext context) {
-        String parentJobId = context.getAsyncApexJobId();
-
-        if (context.getResult() == ParentJobResult.SUCCESS) {
-            System.debug('SObject Clone queueable job [' + parentJobId + '] completed successfully.');
-        }
-
-        if(recordIdToSourceIdMap != null && recordIdToSourceIdMap.values().size() > 0 && recordIdToSourceIdMap.values()[0].getSObjectType().getDescribe().getName().contains('SBQQ__Quote__c')){
-            for(Id quoteId : recordIdToSourceIdMap.keySet()){
-                SBQQ.QuoteAPI.QuoteCalculator quoteCalculator = new SBQQ.QuoteAPI.QuoteCalculator();
-                quoteCalculator.loadQuote(quoteId);
-                quoteCalculator.calculate();
-            }
         }
     }
 }
