@@ -13,11 +13,11 @@ Note: You cannot invoke a quote calculation from a queueable so the quote calcul
 
 ### Clone Queueables
 
-3. CloneOpportunity - clones the opportunity & executes CloneQuote (passing the cloned opportunity records)
+3. CloneOpportunity - clones the list of opportunities & executes CloneQuote (passing the cloned opportunity records)
 
-4. CloneQuote - clones the quotes related to the source opportunities, reparents them to the cloned opportunities & executes CloneQuoteLines (passing the cloned Quote records), on completion of the child quote line batches, the finalizer will recalculate their parent quote.
+4. CloneQuote - clones the list of quotes related to the source opportunities (derived from the passed in opportunities), reparents them to the cloned opportunities & executes CloneQuoteLines (passing the cloned quote records), on completion of the child quote line batches, the finalizer will recalculate their parent quote
 
-5. CloneQuoteLines - clones the quote lines related to the source quote, reparents them to the cloned quote
+5. CloneQuoteLines - clones the quote lines related to the source quote (derived from the passed in quotes), reparents them to the cloned quotes and finishes execution
 
 ### CPQ Quote Calculator
 
@@ -32,15 +32,15 @@ Note: You cannot invoke a quote calculation from a queueable so the quote calcul
 
 1. OpportunityTrigger - determines the trigger contexts to run
 
-2. OpportunityTriggerHelper - determines criteria for cloning process & executes CloneRecordsQueue by passing in the list of opportunities that meet the criteria outlined in the opportunity trigger and a false value for CloneRelatedRecords.
+2. OpportunityTriggerHelper - determines criteria for cloning process & executes CloneRecordsQueue (passing in the list of evaluated opportunities) and a false value for CloneRelatedRecords
 
 ### Clone Recursive Queueable
 
-3. CloneRecordsQueue - passed in opportunities, executes CloneRecordsQueue by passing in the list of cloned opportunities and a true value for CloneRelatedRecords
+3. CloneRecordsQueue - passed in list of opportunities to clone, clones the list of opportunities (can dismiss or not dismiss previously cloned opps), then executes CloneRecordsQueue by passing in the list of cloned opportunities and a true value for CloneRelatedRecords
 
-(Recursion) CloneRecordsQueue - passed in cloned opportunities, executes CloneRecordsQueue by passing in the list of cloned quotes and a true value for CloneRelatedRecords.
+(Recursion) CloneRecordsQueue - passed in list of cloned opportunities, finds the clone's sourceId, finds the child records related to the sourceId (in this case, quotes related to the previously cloned opportunity), clones the child records and reparents them to the cloned record, then executes CloneRecordsQueue by passing in the list of cloned quotes and a true value for CloneRelatedRecords
 
-(Recursion) CloneRecordsQueue - passed in cloned quotes, finishes execution of logic resulting in a list of cloned quotelines, reparents them
+(Recursion) CloneRecordsQueue - passed in list of cloned quotes, finds the clone's sourceId, finds the child records related to the sourceId (in this case, quotes lines related to the previously cloned quote), clones the child records and reparents them to the cloned record, then finishes execution of logic resulting in a list of cloned quote lines
 
 ### CPQ Quote Calculator
 
