@@ -10,8 +10,7 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
     //-----------------------------------------------------------
     // Constructor
     //-----------------------------------------------------------
-    public CloneRecordsQueue(Map<Id, SObject> recordsToProcess, Boolean relatedRecordEvaluation) {
-
+    public CloneRecordsQueue(Map<Id, SObject> recordsToProcess, Boolean relatedRecordEvaluation, Boolean ignoreSource) {
         Map<Id, Id> tempMap = new Map<Id, Id>();
         for(SObject currentRecord : recordsToProcessMap.values()){
 
@@ -20,7 +19,7 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
              * if the object needs record reparenting, the getCloneSourceId() method returns the original/source recordId
              */
 
-            Id sourceId = (currentRecord.getCloneSourceId() != null && relatedRecordEvaluation) ? currentRecord.getCloneSourceId() : currentRecord.Id;
+            Id sourceId = (currentRecord.getCloneSourceId() != null && !ignoreSource && relatedRecordEvaluation) ? currentRecord.getCloneSourceId() : currentRecord.Id;
             tempMap.put(currentRecord.Id, sourceId);
         }
 
@@ -79,7 +78,7 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
 
             if(childRecordsToProcess){
                 // Call (Chained Queueable)
-                ID jobID = System.enqueueJob(new CloneRecordsQueue(new Map<Id, SObject>(clonedList), true));
+                ID jobID = System.enqueueJob(new CloneRecordsQueue(new Map<Id, SObject>(clonedList), true, false));
                 System.debug('Queueable job [' + jobID + '] enqueued successfully.');
             }
         }
@@ -97,9 +96,10 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
 
         if(recordIdToSourceIdMap != null && recordIdToSourceIdMap.values().size() > 0 && recordIdToSourceIdMap.values()[0].getSObjectType().getDescribe().getName().contains('SBQQ__Quote__c')){
             for(Id quoteId : recordIdToSourceIdMap.keySet()){
-                SBQQ.QuoteAPI.QuoteCalculator quoteCalculator = new SBQQ.QuoteAPI.QuoteCalculator();
-                quoteCalculator.loadQuote(quoteId);
-                quoteCalculator.calculate();
+                SObject quoteRecord = recordsToProcessMap.get(quoteId);
+                CloneRecordsQueue.QuoteModel quoteModel = new CloneRecordsQueue.QuoteModel(quoteRecord);
+                QuoteCalculator quoteCalculator = new QuoteCalculator();
+                quoteCalculator.calculate(quoteModel, 'SaveCalculation');
             }
         }
     }
@@ -148,6 +148,25 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
             return 'SBQQ__Quote__c';
         } else {
             return null;
+        }
+    }
+
+    public class QuoteModel {
+        public SObject record;
+        public Integer nextKey;
+        public Boolean applyAdditionalDiscountLast;
+        public Boolean applyPartnerDiscountFirst;
+        public Boolean channelDiscountsOffList;
+        public Decimal customerTotal;
+        public Decimal netTotal;
+        public Decimal netNonSegmentTotal;
+
+        public QuoteModel(SObject record){
+            this.record = record;
+            this.nextKey = 1;
+            this.applyAdditionalDiscountLast = false;
+            this.applyPartnerDiscountFirst = false;
+            this.channelDiscountsOffList = false;
         }
     }
 }
