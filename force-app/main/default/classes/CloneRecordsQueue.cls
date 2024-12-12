@@ -46,7 +46,7 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
                     SObject clonedChildRecord = getClone(childRecord);
                     String relationshipFieldToReparent = getParentField(childRecord);
 
-                    if(relationshipFieldToReparent.isNotEmpty()){
+                    if(String.isNotEmpty(relationshipFieldToReparent)){
                         clonedChildRecord.put(relationshipFieldToReparent, recordId);
                     }
 
@@ -128,8 +128,8 @@ public class CloneRecordsQueue implements Finalizer, Queueable {
             System.debug('SObject Clone queueable job [' + parentJobId + '] completed successfully.');
         }
 
-        if(recordIdToSourceIdMap.isNotEmpty() && recordIdToSourceIdMap[0].getSObjectType().getDescribe().getName().contains('SBQQ__Quote__c')){
-            for(Id quoteId : sourceIdByClonedId.keySet()){
+        if(recordIdToSourceIdMap != null && recordIdToSourceIdMap.values().size() > 0 && recordIdToSourceIdMap.values()[0].getSObjectType().getDescribe().getName().contains('SBQQ__Quote__c')){
+            for(Id quoteId : recordIdToSourceIdMap.keySet()){
                 SBQQ.QuoteAPI.QuoteCalculator quoteCalculator = new SBQQ.QuoteAPI.QuoteCalculator();
                 quoteCalculator.loadQuote(quoteId);
                 quoteCalculator.calculate();
