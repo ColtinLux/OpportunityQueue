@@ -57,11 +57,32 @@ public class CloneQuote implements Finalizer, Queueable {
             System.debug('Quote queueable job [' + parentJobId + '] completed successfully.');
         }
 
-        //After all child quote line jobs finish, then recalculate the parent quote
-        for(Id quoteId : sourceIdByClonedId.keySet()){
-            SBQQ.QuoteAPI.QuoteCalculator quoteCalculator = new SBQQ.QuoteAPI.QuoteCalculator();
-            quoteCalculator.loadQuote(quoteId);
-            quoteCalculator.calculate();
+        if(sourceIdByClonedId != null && sourceIdByClonedId.values().size() > 0 && sourceIdByClonedId.values()[0].getSObjectType().getDescribe().getName().contains('SBQQ__Quote__c')){
+            for(Id quoteId : sourceIdByClonedId.keySet()){
+                SObject quoteRecord = recordsToProcessMap.get(quoteId);
+                CloneQuote.QuoteModel quoteModel = new CloneQuote.QuoteModel(quoteRecord);
+                QuoteCalculator quoteCalculator = new QuoteCalculator();
+                quoteCalculator.calculate(quoteModel, 'SaveCalculation');
+            }
+        }
+    }
+
+    public class QuoteModel {
+        public SObject record;
+        public Integer nextKey;
+        public Boolean applyAdditionalDiscountLast;
+        public Boolean applyPartnerDiscountFirst;
+        public Boolean channelDiscountsOffList;
+        public Decimal customerTotal;
+        public Decimal netTotal;
+        public Decimal netNonSegmentTotal;
+
+        public QuoteModel(SObject record){
+            this.record = record;
+            this.nextKey = 1;
+            this.applyAdditionalDiscountLast = false;
+            this.applyPartnerDiscountFirst = false;
+            this.channelDiscountsOffList = false;
         }
     }
 }
